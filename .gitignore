@@ -1,0 +1,13 @@
+/node_modules/
+.DS_Store
+*.swp
+*.pyc
+.vscode
+.idea
+/types/*
+jest-report.json
+drivers/
+tsconfig.tsbuildinfo
+app/
+/.temporary
+jest.env.dev.js
