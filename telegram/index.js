@@ -52,7 +52,7 @@ const convertTime = (time) => {
   const partsTime = time.split('.');
   if(partsTime.length === 1) return time;
 
-  const ms = 1000/Number(partsTime[1]);
+  const ms = 1000*(Number(partsTime[1])/10);
   return `${partsTime[0]}.${ms}`;
 };
 
@@ -91,7 +91,7 @@ bot.on('text', async ctx => {
             return ctx.reply('Enter duration (in seconds)');
           }
 
-          return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
+          return ctx.reply('Incorrect start time (in seconds or mm:ss.mmm or hh:mm:ss.mmm), try again');
         }
         case 3: {
           if(durationRegex.test(text)) {
