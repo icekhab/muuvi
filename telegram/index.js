@@ -19,7 +19,7 @@ bot.command('menu', async (ctx) => {
   )
 });
 
-bot.action('cut_time', async (ctx, next) => {
+bot.action('cut_time', async (ctx) => {
   // ctx.answerCbQuery();
   const userId = ctx.chat.id;
   if (!state[userId])
@@ -31,7 +31,7 @@ bot.action('cut_time', async (ctx, next) => {
   return true;
 });
 
-bot.action('cut_time_and_size', async (ctx, next) => {
+bot.action('cut_time_and_size', async (ctx) => {
   // ctx.answerCbQuery();
   const userId = ctx.chat.id;
   if (!state[userId])
@@ -44,9 +44,17 @@ bot.action('cut_time_and_size', async (ctx, next) => {
 });
 
 const youtubeRegex = /^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/;
-const startTimeRegex = /^([0-9]+)$|^((([0-1]?[0-9]|2[0-3]):)?[0-5][0-9]:[0-5][0-9])$/;
+const startTimeRegex = /^([0-9]+(.([0-9])?[0-9])?)$|^((([0-1]?[0-9]|2[0-3]):)?[0-5][0-9]:[0-5][0-9]+(.([0-9])?[0-9])?)$/;
 const durationRegex = /^([0-9]+)$/;
 const cutPointsRegex = /^(([0-9])?[0-9])$|^100$/;
+
+const convertTime = (time) => {
+  const partsTime = time.split('.');
+  if(partsTime.length === 1) return time;
+
+  const ms = 1000/Number(partsTime[1]);
+  return `${partsTime[0]}.${ms}`;
+};
 
 bot.on('text', async ctx => {
   const text = ctx.message.text;
@@ -131,7 +139,7 @@ bot.on('text', async ctx => {
           if(startTimeRegex.test(text)) {
             state[userId].payload = {
               ...state[userId].payload,
-              startTime: text
+              startTime: convertTime(text),
             };
   
             state[userId].step = 3;
