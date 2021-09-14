@@ -235,9 +235,14 @@ bot.on('text', async ctx => {
             };
 
             try {
-              return ctx.reply('kek', Markup.inlineKeyboard([
-                Markup.button.callback('By time', 'cut_time'),
-                Markup.button.callback('By time and size', 'cut_time_and_size'),
+              ctx.reply('Video processing has started, please wait, it may take a few minutes');
+              const file = await cutFile(state[userId].payload);
+
+              return ctx.replyWithVideo({
+                source: file,
+              }, Markup.inlineKeyboard([
+                Markup.button.callback('Main menu', 'menu'),
+                Markup.button.callback('Edit result', 'edit_result'),
               ]));
             } catch(err) {
               console.log(err);
