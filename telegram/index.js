@@ -19,6 +19,14 @@ bot.command('menu', async (ctx) => {
   )
 });
 
+bot.action('menu',  (ctx) => {
+  return ctx.reply('Choose how to trim video', Markup.inlineKeyboard([
+        Markup.button.callback('By time', 'cut_time'),
+        Markup.button.callback('By time and size', 'cut_time_and_size'),
+      ])
+  )
+});
+
 bot.action('cut_time', async (ctx) => {
   // ctx.answerCbQuery();
   const userId = ctx.chat.id;
@@ -91,7 +99,7 @@ bot.on('text', async ctx => {
             return ctx.reply('Enter duration (in seconds)');
           }
 
-          return ctx.reply('Incorrect start time (in seconds or mm:ss.mmm or hh:mm:ss.mmm), try again');
+          return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
         }
         case 3: {
           if(durationRegex.test(text)) {
@@ -106,7 +114,10 @@ bot.on('text', async ctx => {
   
               return ctx.replyWithVideo({
                 source: file,
-              });
+              }, Markup.inlineKeyboard([
+                Markup.button.callback('Main menu', 'menu'),
+                Markup.button.callback('Edit result', 'edit_result'),
+              ]));
             } catch(err) {
               console.log(err);
               return ctx.reply('Oops, error');
@@ -222,17 +233,12 @@ bot.on('text', async ctx => {
                 right: Number(text)
               },
             };
-  
-            try {
-              cutFile(state[userId].payload)
-              .then((file) => ctx.replyWithVideo({ source: file }))
-              .catch((err) => {
-                console.log(err);
-                return ctx.reply('Oops, error');
-              })
-              .finally(() => { state[userId] = undefined });
 
-              return ctx.reply('Video processing has started, please wait, it may take a few minutes');
+            try {
+              return ctx.reply('kek', Markup.inlineKeyboard([
+                Markup.button.callback('By time', 'cut_time'),
+                Markup.button.callback('By time and size', 'cut_time_and_size'),
+              ]));
             } catch(err) {
               console.log(err);
               return ctx.reply('Oops, error');
@@ -247,10 +253,13 @@ bot.on('text', async ctx => {
     default:
       ctx.reply('Enter /menu to select options');
   }
-})
+});
 
+bot.action('edit_result', async (ctx) => {
+  return true;
+});
 
-bot.launch()
+bot.launch();
 
 // Enable graceful stop
 process.once('SIGINT', () => bot.stop('SIGINT'))
