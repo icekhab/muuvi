@@ -75,6 +75,26 @@ const convertTime = (time) => {
   return `${partsTime[0]}.${ms.toString()}`;
 };
 
+const processVideo = async (ctx) => {
+  try {
+    const userId = ctx.message.from.id;
+    ctx.reply('Video processing has started, please wait, it may take a few minutes');
+    const file = await cutFile(state[userId].payload);
+
+    await ctx.replyWithVideo({
+      source: file,
+    }, Markup.inlineKeyboard([
+      Markup.button.callback('Main menu', 'menu'),
+      Markup.button.callback('Edit result', 'edit_result'),
+    ]));
+
+    return true;
+  } catch(err) {
+    console.log(err);
+    return ctx.reply('Oops, error');
+  }
+}
+
 bot.on('text', async ctx => {
   const text = ctx.message.text;
   const userId = ctx.message.from.id;
@@ -118,21 +138,8 @@ bot.on('text', async ctx => {
               ...state[userId].payload,
               duration: Number(text)
             };
-  
-            try {
-              ctx.reply('Video processing has started, please wait, it may take a few minutes');
-              const file = await cutFile(state[userId].payload);
-  
-              return ctx.replyWithVideo({
-                source: file,
-              }, Markup.inlineKeyboard([
-                Markup.button.callback('Main menu', 'menu'),
-                Markup.button.callback('Edit result', 'edit_result'),
-              ]));
-            } catch(err) {
-              console.log(err);
-              return ctx.reply('Oops, error');
-            }
+            await processVideo(ctx);
+            return true;
           }
 
           return ctx.reply('Incorrect duration (in seconds), try again');
@@ -243,20 +250,8 @@ bot.on('text', async ctx => {
               },
             };
 
-            try {
-              ctx.reply('Video processing has started, please wait, it may take a few minutes');
-              const file = await cutFile(state[userId].payload);
-
-              return ctx.replyWithVideo({
-                source: file,
-              }, Markup.inlineKeyboard([
-                Markup.button.callback('Main menu', 'menu'),
-                Markup.button.callback('Edit result', 'edit_result'),
-              ]));
-            } catch(err) {
-              console.log(err);
-              return ctx.reply('Oops, error');
-            }
+            await processVideo(ctx);
+            return true;
           }
 
           return ctx.reply('Value must be from 0 to 100, try again');
@@ -285,20 +280,8 @@ bot.on('text', async ctx => {
 
         state[userId].payload.startTime = [...(rest.reverse()), convertTime(result)].join(':');
 
-        try {
-          ctx.reply('Video processing has started, please wait, it may take a few minutes');
-          const file = await cutFile(state[userId].payload);
-
-          return ctx.replyWithVideo({
-            source: file,
-          }, Markup.inlineKeyboard([
-            Markup.button.callback('Main menu', 'menu'),
-            Markup.button.callback('Edit result', 'edit_result'),
-          ]));
-        } catch(err) {
-          console.log(err);
-          return ctx.reply('Oops, error');
-        }
+        await processVideo(ctx);
+        return true;
       }
 
       return ctx.reply('Incorrect offset (in seconds), try again');
@@ -312,20 +295,8 @@ bot.on('text', async ctx => {
           state[userId].payload.duration += Number(text);
         }
 
-        try {
-          ctx.reply('Video processing has started, please wait, it may take a few minutes');
-          const file = await cutFile(state[userId].payload);
-
-          return ctx.replyWithVideo({
-            source: file,
-          }, Markup.inlineKeyboard([
-            Markup.button.callback('Main menu', 'menu'),
-            Markup.button.callback('Edit result', 'edit_result'),
-          ]));
-        } catch(err) {
-          console.log(err);
-          return ctx.reply('Oops, error');
-        }
+        await processVideo(ctx);
+        return true;
       }
 
       return ctx.reply('Incorrect offset (in seconds), try again');
@@ -392,20 +363,8 @@ bot.on('text', async ctx => {
               },
             };
 
-            try {
-              ctx.reply('Video processing has started, please wait, it may take a few minutes');
-              const file = await cutFile(state[userId].payload);
-
-              return ctx.replyWithVideo({
-                source: file,
-              }, Markup.inlineKeyboard([
-                Markup.button.callback('Main menu', 'menu'),
-                Markup.button.callback('Edit result', 'edit_result'),
-              ]));
-            } catch(err) {
-              console.log(err);
-              return ctx.reply('Oops, error');
-            }
+            await processVideo(ctx);
+            return true;
           }
 
           return ctx.reply('Value must be from 0 to 100, try again');

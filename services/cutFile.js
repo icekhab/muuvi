@@ -1,9 +1,11 @@
 const ytdl = require('ytdl-core');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-
+const Stream = require('stream');
 const spawn = require('child_process').spawn;
 
 module.exports = (payload) => {
+    const readableStream = new Stream.Readable()
+    readableStream._read = () => {}
     return new Promise(async (res, rej) => {
         try {
             const { top = 0, bottom = 0, left = 0, right = 0 } = payload.cutPoints || {};
@@ -22,16 +24,26 @@ module.exports = (payload) => {
 
             const proc = spawn(ffmpegPath, args);
 
-            res(proc.stdout);
-
             proc.on('error', (err) => {
                 console.log('Cut file error', err)
                 rej(err);
             });
             proc.stderr.setEncoding('utf8');
-            proc.stderr.on('data', function(data) {
-                console.log('Cut file stderr',data);
-                rej(new Error());
+            let output = '';
+            proc.stderr
+                .on('data', c => { output += c; });
+            proc.stdout
+                .on('data', c => {
+                    readableStream.push(c);
+                });
+
+            proc.on('exit', (code) => {
+                if (code) {
+                    rej({ code: code, message: output });
+                } else {
+                    readableStream.push(null);
+                    res(readableStream);
+                }
             });
 
             proc.on('close', function() {
