@@ -24,13 +24,18 @@ module.exports = (payload) => {
 
             res(proc.stdout);
 
-            proc.stderr.setEncoding('utf8')
+            proc.on('error', (err) => {
+                console.log('Cut file error', err)
+                rej(err);
+            });
+            proc.stderr.setEncoding('utf8');
             proc.stderr.on('data', function(data) {
-                console.log(data);
+                console.log('Cut file stderr',data);
                 rej(new Error());
             });
 
             proc.on('close', function() {
+                console.log('kill')
                 proc.kill();
             });
           } catch(err) {
