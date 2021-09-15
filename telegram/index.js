@@ -56,8 +56,8 @@ bot.action('cut_time_and_size', async (ctx) => {
 });
 
 const youtubeRegex = /^(https?\:\/\/)?(www\.youtube\.com|youtu\.?be)\/.+$/;
-const startTimeRegex = /^([0-9]+(.([0-9])?[0-9])?)$|^((([0-1]?[0-9]|2[0-3]):)?[0-5][0-9]:[0-5][0-9]+(.([0-9])?[0-9])?)$/;
-const durationRegex = /^([0-9]+(.([0-9])?[0-9])?)$/;
+const startTimeRegex = /^([0-9]+(\.([0-9])?[0-9])?)$|^((([0-1]?[0-9]|2[0-3]):)?[0-5][0-9]:[0-5][0-9]+(\.([0-9])?[0-9])?)$/;
+const durationRegex = /^([0-9]+(\.([0-9])?[0-9])?)$/;
 const cutPointsRegex = /^(([0-9])?[0-9])$|^100$/;
 
 const convertTime = (time) => {

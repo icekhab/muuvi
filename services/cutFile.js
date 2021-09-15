@@ -11,11 +11,12 @@ module.exports = (payload) => {
             const { top = 0, bottom = 0, left = 0, right = 0 } = payload.cutPoints || {};
             const width = 1 - (left/100) - (right/100);
             const height = 1 - (top/100) - (bottom/100);
-            const basicInfo = await ytdl.getBasicInfo(payload.link, { format: 'mp4' });
+            let info = await ytdl.getInfo(payload.link);
+            let format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
 
             const args = [
                 '-ss', payload.startTime,
-                '-i', basicInfo.player_response.streamingData.formats[0].url,
+                '-i', format.url,
                 '-t', payload.duration,
                 '-filter:v', `crop=iw*${width}:ih*${height}:iw*${left / 100}:ih*${top / 100}`,
                 '-movflags', 'frag_keyframe+empty_moov',
