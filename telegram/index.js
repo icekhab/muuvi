@@ -20,31 +20,33 @@ bot.use((ctx, next) => {
 
   return next();
 });
-bot.command('menu', (ctx) => {
-  ctx.analytics.menu();
+
+const menu = (ctx) => {
   const userId = ctx.chat.id;
   state[userId] = undefined;
-  return ctx.reply('Choose how to trim video', Markup.inlineKeyboard([
-    Markup.button.callback('By time', 'cut_time'),
-    Markup.button.callback('By time and size', 'cut_time_and_size'),
-  ])
-  )
-});
-
-bot.start((ctx) => {
-  ctx.analytics.start();
-  return ctx.reply(welcomeLetter)
-});
-
-bot.action('menu',  (ctx) => {
-  const userId = ctx.chat.id;
-  state[userId] = undefined;
-  ctx.analytics.menuAfterFinish();
   return ctx.reply('Choose how to trim video', Markup.inlineKeyboard([
         Markup.button.callback('By time', 'cut_time'),
         Markup.button.callback('By time and size', 'cut_time_and_size'),
       ])
-  )
+  );
+}
+
+
+bot.command('menu', (ctx) => {
+  ctx.analytics.menu();
+  return menu(ctx);
+});
+
+bot.start((ctx) => {
+  ctx.analytics.start();
+  const userId = ctx.chat.id;
+  state[userId] = undefined;
+  return ctx.reply(welcomeLetter)
+});
+
+bot.action('menu',  (ctx) => {
+  ctx.analytics.menuAfterFinish();
+  return menu(ctx);
 });
 
 bot.action('cut_time', async (ctx) => {
@@ -94,325 +96,326 @@ const convertTime = (time) => {
 };
 
 const processVideo = async (ctx) => {
-  try {
-    const userId = ctx.message.from.id;
-    ctx.reply('Video processing has started, please wait, it may take a few minutes');
-    const file = await cutFile(state[userId].payload);
+  const userId = ctx.message.from.id;
+  ctx.reply('Video processing has started, please wait, it may take a few minutes');
+  const file = await cutFile(state[userId].payload);
 
-    await ctx.replyWithVideo({
-      source: file,
-    }, Markup.inlineKeyboard([
-      Markup.button.callback('Main menu', 'menu'),
-      Markup.button.callback('Edit result', 'edit_result'),
-    ]));
+  await ctx.replyWithVideo({
+    source: file,
+  }, Markup.inlineKeyboard([
+    Markup.button.callback('Main menu', 'menu'),
+    Markup.button.callback('Edit result', 'edit_result'),
+  ]));
 
-    ctx.analytics.finish();
+  ctx.analytics.finish();
 
-    return true;
-  } catch(err) {
-    console.log(err);
-    return ctx.reply('Oops, error');
-  }
+  return true;
 }
 
 bot.on('text', async ctx => {
-  const text = ctx.message.text;
-  const userId = ctx.message.from.id;
+  try {
+    const text = ctx.message.text;
+    const userId = ctx.message.from.id;
 
-  const action = state[userId]?.action;
-  const step = state[userId]?.step;
+    const action = state[userId]?.action;
+    const step = state[userId]?.step;
 
-  switch (action) {
-    case 'cut_time': {
-      switch(step) {
-        case 1: {
-          if(youtubeRegex.test(text)) {
-            ctx.analytics.enteredYoutubeLink();
+    switch (action) {
+      case 'cut_time': {
+        switch(step) {
+          case 1: {
+            if(youtubeRegex.test(text)) {
+              ctx.analytics.enteredYoutubeLink();
 
-            state[userId].payload = {
-              link: text
-            };
+              state[userId].payload = {
+                link: text
+              };
 
-            state[userId].step = 2;
+              state[userId].step = 2;
 
-            return ctx.reply('Enter start time (in seconds or mm:ss or hh:mm:ss)');
+              return ctx.reply('Enter start time (in seconds or mm:ss or hh:mm:ss)');
+            }
+
+            return ctx.reply('Incorrect youtube link, try again');
           }
+          case 2: {
+            if(startTimeRegex.test(text)) {
+              ctx.analytics.enteredStartTime();
+              state[userId].payload = {
+                ...state[userId].payload,
+                startTime: convertTime(text)
+              };
 
-          return ctx.reply('Incorrect youtube link, try again');
-        }
-        case 2: {
-          if(startTimeRegex.test(text)) {
-            ctx.analytics.enteredStartTime();
-            state[userId].payload = {
-              ...state[userId].payload,
-              startTime: convertTime(text)
-            };
-  
-            state[userId].step = 3;
-  
-            return ctx.reply('Enter duration (in seconds)');
+              state[userId].step = 3;
+
+              return ctx.reply('Enter duration (in seconds)');
+            }
+
+            return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
           }
+          case 3: {
+            if(durationRegex.test(text)) {
+              ctx.analytics.enteredDuration();
+              state[userId].payload = {
+                ...state[userId].payload,
+                duration: Number(text)
+              };
+              await processVideo(ctx);
+              return true;
+            }
 
-          return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
-        }
-        case 3: {
-          if(durationRegex.test(text)) {
-            ctx.analytics.enteredDuration();
-            state[userId].payload = {
-              ...state[userId].payload,
-              duration: Number(text)
-            };
-            await processVideo(ctx);
-            return true;
+            return ctx.reply('Incorrect duration (in seconds), try again');
           }
-
-          return ctx.reply('Incorrect duration (in seconds), try again');
         }
+        break;
       }
-      break;
-    }
-    case 'cut_time_and_size': {
-      switch(step) {
-        case 1: {
-          if(youtubeRegex.test(text)) {
-            ctx.analytics.enteredYoutubeLink();
-            state[userId].payload = {
-              link: text
-            };
+      case 'cut_time_and_size': {
+        switch(step) {
+          case 1: {
+            if(youtubeRegex.test(text)) {
+              ctx.analytics.enteredYoutubeLink();
+              state[userId].payload = {
+                link: text
+              };
 
-            state[userId].step = 2;
+              state[userId].step = 2;
 
-            return ctx.reply('Enter start time (in seconds or mm:ss or hh:mm:ss)');
+              return ctx.reply('Enter start time (in seconds or mm:ss or hh:mm:ss)');
+            }
+
+            return ctx.reply('Incorrect youtube link, try again');
           }
+          case 2: {
+            if(startTimeRegex.test(text)) {
+              ctx.analytics.enteredStartTime();
+              state[userId].payload = {
+                ...state[userId].payload,
+                startTime: convertTime(text),
+              };
 
-          return ctx.reply('Incorrect youtube link, try again');
-        }
-        case 2: {
-          if(startTimeRegex.test(text)) {
-            ctx.analytics.enteredStartTime();
-            state[userId].payload = {
-              ...state[userId].payload,
-              startTime: convertTime(text),
-            };
-  
-            state[userId].step = 3;
-  
-            return ctx.reply('Enter duration (in seconds)');
+              state[userId].step = 3;
+
+              return ctx.reply('Enter duration (in seconds)');
+            }
+
+            return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
           }
+          case 3: {
+            if(durationRegex.test(text)) {
+              ctx.analytics.enteredDuration();
+              state[userId].payload = {
+                ...state[userId].payload,
+                duration: Number(text)
+              };
 
-          return ctx.reply('Incorrect start time (in seconds or mm:ss or hh:mm:ss), try again');
-        }
-        case 3: {
-          if(durationRegex.test(text)) {
-            ctx.analytics.enteredDuration();
-            state[userId].payload = {
-              ...state[userId].payload,
-              duration: Number(text)
-            };
-  
-            state[userId].step = 4;
-  
-            return ctx.reply('How much to cut from the top (in percents)');
+              state[userId].step = 4;
+
+              return ctx.reply('How much to cut from the top (in percents)');
+            }
+
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 4: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointTop();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  top: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 4: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointTop();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                top: Number(text)
-              },
-            };
-  
-            state[userId].step = 5;
-  
-            return ctx.reply('from the bottom (in percents)');
+              state[userId].step = 5;
+
+              return ctx.reply('from the bottom (in percents)');
+            }
+
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 5: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointBottom();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  bottom: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 5: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointBottom();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                bottom: Number(text)
-              },
-            };
-  
-            state[userId].step = 6;
-  
-            return ctx.reply('from the left (in percents)');
+              state[userId].step = 6;
+
+              return ctx.reply('from the left (in percents)');
+            }
+
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 6: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointLeft();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  left: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 6: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointLeft();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                left: Number(text)
-              },
-            };
-  
-            state[userId].step = 7;
-  
-            return ctx.reply('from the right (in percents)');
+              state[userId].step = 7;
+
+              return ctx.reply('from the right (in percents)');
+            }
+
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 7: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointRight();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  right: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 7: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointRight();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                right: Number(text)
-              },
-            };
+              await processVideo(ctx);
+              return true;
+            }
 
-            await processVideo(ctx);
-            return true;
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
-
-          return ctx.reply('Value must be from 0 to 100, try again');
         }
+        break;
       }
-      break;
-    }
-    case 'edit_start': {
-      if(durationRegex.test(text)) {
-        const timeline = state[userId].timeline;
-        const startTime = state[userId].payload.startTime;
-        const parts = startTime.split('.');
+      case 'edit_start': {
+        if(durationRegex.test(text)) {
+          const timeline = state[userId].timeline;
+          const startTime = state[userId].payload.startTime;
+          const parts = startTime.split('.');
 
-        const [seconds, ...rest] = parts[0].split(':').reverse();
-        const ms = parts[1];
+          const [seconds, ...rest] = parts[0].split(':').reverse();
+          const ms = parts[1];
 
-        const time = ms ? Number(seconds) + (Number(ms) / 1000) : Number(seconds);
-        let result;
-        if (timeline === 'left') {
-          ctx.analytics.enteredMoveTimeToLeftAfterFinish();
-          result = Number(time) - Number(text);
-          state[userId].payload.duration += Number(text);
-        } else {
-          ctx.analytics.enteredMoveTimeToRightAfterFinish();
-          result = Number(time) + Number(text);
-          state[userId].payload.duration -= Number(text);
+          const time = ms ? Number(seconds) + (Number(ms) / 1000) : Number(seconds);
+          let result;
+          if (timeline === 'left') {
+            ctx.analytics.enteredMoveTimeToLeftAfterFinish();
+            result = Number(time) - Number(text);
+            state[userId].payload.duration += Number(text);
+          } else {
+            ctx.analytics.enteredMoveTimeToRightAfterFinish();
+            result = Number(time) + Number(text);
+            state[userId].payload.duration -= Number(text);
+          }
+
+          state[userId].payload.startTime = [...(rest.reverse()), convertTime(result)].join(':');
+
+          await processVideo(ctx);
+          return true;
         }
 
-        state[userId].payload.startTime = [...(rest.reverse()), convertTime(result)].join(':');
-
-        await processVideo(ctx);
-        return true;
+        return ctx.reply('Incorrect offset (in seconds), try again');
       }
+      case 'edit_end': {
+        if(durationRegex.test(text)) {
+          const timeline = state[userId]?.timeline;
+          if (timeline === 'left') {
+            ctx.analytics.enteredMoveTimeToLeftAfterFinish();
+            state[userId].payload.duration -= Number(text);
+          } else if (timeline === 'right') {
+            ctx.analytics.enteredMoveTimeToRightAfterFinish();
+            state[userId].payload.duration += Number(text);
+          }
 
-      return ctx.reply('Incorrect offset (in seconds), try again');
-    }
-    case 'edit_end': {
-      if(durationRegex.test(text)) {
-        const timeline = state[userId]?.timeline;
-        if (timeline === 'left') {
-          ctx.analytics.enteredMoveTimeToLeftAfterFinish();
-          state[userId].payload.duration -= Number(text);
-        } else if (timeline === 'right') {
-          ctx.analytics.enteredMoveTimeToRightAfterFinish();
-          state[userId].payload.duration += Number(text);
+          await processVideo(ctx);
+          return true;
         }
 
-        await processVideo(ctx);
-        return true;
+        return ctx.reply('Incorrect offset (in seconds), try again');
       }
+      case 'edit_trim': {
+        switch(step) {
+          case 1: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointTopAfterFinish();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  top: Number(text)
+                },
+              };
 
-      return ctx.reply('Incorrect offset (in seconds), try again');
-    }
-    case 'edit_trim': {
-      switch(step) {
-        case 1: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointTopAfterFinish();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                top: Number(text)
-              },
-            };
+              state[userId].step = 2;
 
-            state[userId].step = 2;
+              return ctx.reply('from the bottom (in percents)');
+            }
 
-            return ctx.reply('from the bottom (in percents)');
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 2: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointBottomAfterFinish();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  bottom: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 2: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointBottomAfterFinish();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                bottom: Number(text)
-              },
-            };
+              state[userId].step = 3;
 
-            state[userId].step = 3;
+              return ctx.reply('from the left (in percents)');
+            }
 
-            return ctx.reply('from the left (in percents)');
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 3: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointLeftAfterFinish();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  left: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 3: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointLeftAfterFinish();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                left: Number(text)
-              },
-            };
+              state[userId].step = 4;
 
-            state[userId].step = 4;
+              return ctx.reply('from the right (in percents)');
+            }
 
-            return ctx.reply('from the right (in percents)');
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
+          case 4: {
+            if(cutPointsRegex.test(text)) {
+              ctx.analytics.enteredCutPointRightAfterFinish();
+              state[userId].payload = {
+                ...state[userId].payload,
+                cutPoints: {
+                  ...state[userId].payload.cutPoints,
+                  right: Number(text)
+                },
+              };
 
-          return ctx.reply('Value must be from 0 to 100, try again');
-        }
-        case 4: {
-          if(cutPointsRegex.test(text)) {
-            ctx.analytics.enteredCutPointRightAfterFinish();
-            state[userId].payload = {
-              ...state[userId].payload,
-              cutPoints: {
-                ...state[userId].payload.cutPoints,
-                right: Number(text)
-              },
-            };
+              await processVideo(ctx);
+              return true;
+            }
 
-            await processVideo(ctx);
-            return true;
+            return ctx.reply('Value must be from 0 to 100, try again');
           }
-
-          return ctx.reply('Value must be from 0 to 100, try again');
         }
+        break;
       }
-      break;
+      default:
+        ctx.reply('Enter /menu to select options');
     }
-    default:
-      ctx.reply('Enter /menu to select options');
+  } catch (e) {
+    console.log(e);
+    await ctx.reply('Oops, error');
+    return menu(ctx);
   }
 });
 
