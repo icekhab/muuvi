@@ -414,7 +414,7 @@ bot.on('text', async ctx => {
     }
   } catch (e) {
     console.log(e);
-    await ctx.reply('Oops, error');
+    await ctx.reply('Oops, error :( You could try again');
     return menu(ctx);
   }
 });
