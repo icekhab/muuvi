@@ -119,8 +119,8 @@ class Analytics {
         const params = {
             ec: 'Telegram bot',
             ea: eventName,
-            uid: this.userId,
         };
+        visitor.set("uid", this.userId);
         visitor.event(params).send();
     }
 }
