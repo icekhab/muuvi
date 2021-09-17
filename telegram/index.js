@@ -1,5 +1,6 @@
 const { Telegraf, Markup } = require('telegraf');
 const cutFile = require('../services/cutFile');
+const addWatermark = require('../services/addWatermark');
 const Analytics = require('../services/analytics');
 const welcomeLetter = require('./welcomeLetter');
 
@@ -99,9 +100,10 @@ const processVideo = async (ctx) => {
   const userId = ctx.message.from.id;
   ctx.reply('Video processing has started, please wait, it may take a few minutes');
   const file = await cutFile(state[userId].payload);
+  const fileWithWater = await addWatermark(file);
 
   await ctx.replyWithVideo({
-    source: file,
+    source: fileWithWater,
   }, Markup.inlineKeyboard([
     Markup.button.callback('Main menu', 'menu'),
     Markup.button.callback('Edit result', 'edit_result'),
