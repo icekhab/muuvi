@@ -1,5 +1,8 @@
 const { Telegraf, Markup } = require('telegraf');
 const cutFile = require('../services/cutFile');
+const Analytics = require('../services/analytics');
+const welcomeLetter = require('./welcomeLetter');
+
 
 const { TOKEN: token } = process.env;
 if (token === undefined) {
@@ -11,7 +14,14 @@ let state = {};
 const bot = new Telegraf(token)
 
 bot.use(Telegraf.log());
+bot.use((ctx, next) => {
+  const userId = ctx.chat.id;
+  ctx.analytics = new Analytics(userId);
+
+  return next();
+});
 bot.command('menu', (ctx) => {
+  ctx.analytics.menu();
   const userId = ctx.chat.id;
   state[userId] = undefined;
   return ctx.reply('Choose how to trim video', Markup.inlineKeyboard([
@@ -21,9 +31,15 @@ bot.command('menu', (ctx) => {
   )
 });
 
+bot.start((ctx) => {
+  ctx.analytics.start();
+  return ctx.reply(welcomeLetter)
+});
+
 bot.action('menu',  (ctx) => {
   const userId = ctx.chat.id;
   state[userId] = undefined;
+  ctx.analytics.menuAfterFinish();
   return ctx.reply('Choose how to trim video', Markup.inlineKeyboard([
         Markup.button.callback('By time', 'cut_time'),
         Markup.button.callback('By time and size', 'cut_time_and_size'),
@@ -33,6 +49,7 @@ bot.action('menu',  (ctx) => {
 
 bot.action('cut_time', async (ctx) => {
   // ctx.answerCbQuery();
+  ctx.analytics.editByTheTime();
   const userId = ctx.chat.id;
   if (!state[userId])
     state[userId] = {};
@@ -45,6 +62,7 @@ bot.action('cut_time', async (ctx) => {
 
 bot.action('cut_time_and_size', async (ctx) => {
   // ctx.answerCbQuery();
+  ctx.analytics.editByTheTimeAndSize();
   const userId = ctx.chat.id;
   if (!state[userId])
     state[userId] = {};
@@ -88,6 +106,8 @@ const processVideo = async (ctx) => {
       Markup.button.callback('Edit result', 'edit_result'),
     ]));
 
+    ctx.analytics.finish();
+
     return true;
   } catch(err) {
     console.log(err);
@@ -107,6 +127,8 @@ bot.on('text', async ctx => {
       switch(step) {
         case 1: {
           if(youtubeRegex.test(text)) {
+            ctx.analytics.enteredYoutubeLink();
+
             state[userId].payload = {
               link: text
             };
@@ -120,6 +142,7 @@ bot.on('text', async ctx => {
         }
         case 2: {
           if(startTimeRegex.test(text)) {
+            ctx.analytics.enteredStartTime();
             state[userId].payload = {
               ...state[userId].payload,
               startTime: convertTime(text)
@@ -134,6 +157,7 @@ bot.on('text', async ctx => {
         }
         case 3: {
           if(durationRegex.test(text)) {
+            ctx.analytics.enteredDuration();
             state[userId].payload = {
               ...state[userId].payload,
               duration: Number(text)
@@ -151,6 +175,7 @@ bot.on('text', async ctx => {
       switch(step) {
         case 1: {
           if(youtubeRegex.test(text)) {
+            ctx.analytics.enteredYoutubeLink();
             state[userId].payload = {
               link: text
             };
@@ -164,6 +189,7 @@ bot.on('text', async ctx => {
         }
         case 2: {
           if(startTimeRegex.test(text)) {
+            ctx.analytics.enteredStartTime();
             state[userId].payload = {
               ...state[userId].payload,
               startTime: convertTime(text),
@@ -178,6 +204,7 @@ bot.on('text', async ctx => {
         }
         case 3: {
           if(durationRegex.test(text)) {
+            ctx.analytics.enteredDuration();
             state[userId].payload = {
               ...state[userId].payload,
               duration: Number(text)
@@ -192,6 +219,7 @@ bot.on('text', async ctx => {
         }
         case 4: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointTop();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -208,6 +236,7 @@ bot.on('text', async ctx => {
         }
         case 5: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointBottom();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -225,6 +254,7 @@ bot.on('text', async ctx => {
         }
         case 6: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointLeft();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -242,6 +272,7 @@ bot.on('text', async ctx => {
         }
         case 7: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointRight();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -271,9 +302,11 @@ bot.on('text', async ctx => {
         const time = ms ? Number(seconds) + (Number(ms) / 1000) : Number(seconds);
         let result;
         if (timeline === 'left') {
+          ctx.analytics.enteredMoveTimeToLeftAfterFinish();
           result = Number(time) - Number(text);
           state[userId].payload.duration += Number(text);
         } else {
+          ctx.analytics.enteredMoveTimeToRightAfterFinish();
           result = Number(time) + Number(text);
           state[userId].payload.duration -= Number(text);
         }
@@ -290,8 +323,10 @@ bot.on('text', async ctx => {
       if(durationRegex.test(text)) {
         const timeline = state[userId]?.timeline;
         if (timeline === 'left') {
+          ctx.analytics.enteredMoveTimeToLeftAfterFinish();
           state[userId].payload.duration -= Number(text);
         } else if (timeline === 'right') {
+          ctx.analytics.enteredMoveTimeToRightAfterFinish();
           state[userId].payload.duration += Number(text);
         }
 
@@ -305,6 +340,7 @@ bot.on('text', async ctx => {
       switch(step) {
         case 1: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointTopAfterFinish();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -321,6 +357,7 @@ bot.on('text', async ctx => {
         }
         case 2: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointBottomAfterFinish();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -338,6 +375,7 @@ bot.on('text', async ctx => {
         }
         case 3: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointLeftAfterFinish();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -355,6 +393,7 @@ bot.on('text', async ctx => {
         }
         case 4: {
           if(cutPointsRegex.test(text)) {
+            ctx.analytics.enteredCutPointRightAfterFinish();
             state[userId].payload = {
               ...state[userId].payload,
               cutPoints: {
@@ -378,6 +417,7 @@ bot.on('text', async ctx => {
 });
 
 bot.action('edit_result',  (ctx) => {
+  ctx.analytics.editAfterFinish();
   return ctx.reply('Edit time or trim?', Markup.inlineKeyboard([
         Markup.button.callback('Time', 'edit_time'),
         Markup.button.callback('Trim', 'edit_trim'),
@@ -385,6 +425,7 @@ bot.action('edit_result',  (ctx) => {
 });
 
 bot.action('edit_time',  (ctx) => {
+  ctx.analytics.editTimeAfterFinish();
   return ctx.reply('Edit start or end time?', Markup.inlineKeyboard([
     Markup.button.callback('Start', 'edit_start'),
     Markup.button.callback('End', 'edit_end'),
@@ -392,6 +433,7 @@ bot.action('edit_time',  (ctx) => {
 });
 
 bot.action('edit_start',  (ctx) => {
+  ctx.analytics.editStartTimeAfterFinish();
   const userId = ctx.chat.id;
   state[userId].action = 'edit_start';
   return ctx.reply('Move timeline to the left or to the right', Markup.inlineKeyboard([
@@ -402,6 +444,7 @@ bot.action('edit_start',  (ctx) => {
 
 
 bot.action('edit_end',  (ctx) => {
+  ctx.analytics.editEndTimeAfterFinish();
   const userId = ctx.chat.id;
   state[userId].action = 'edit_end';
   return ctx.reply('Move timeline to the left or to the right', Markup.inlineKeyboard([
@@ -411,12 +454,14 @@ bot.action('edit_end',  (ctx) => {
 });
 
 bot.action('timeline_left',  (ctx) => {
+  ctx.analytics.moveTimeToLeftAfterFinish();
   const userId = ctx.chat.id;
   state[userId].timeline = 'left';
   return ctx.reply('Enter offset in seconds (for example 2.5)');
 });
 
 bot.action('timeline_right',  (ctx) => {
+  ctx.analytics.moveTimeToRightAfterFinish();
   const userId = ctx.chat.id;
   state[userId].timeline = 'right';
   return ctx.reply('Enter offset in seconds (for example 1.5)');
@@ -424,6 +469,7 @@ bot.action('timeline_right',  (ctx) => {
 
 
 bot.action('edit_trim',  (ctx) => {
+  ctx.analytics.editTrimAfterFinish();
   const userId = ctx.chat.id;
   state[userId].action = 'edit_trim';
   state[userId].step = 1;
