@@ -99,17 +99,28 @@ const convertTime = (time) => {
 const processVideo = async (ctx) => {
   const userId = ctx.message.from.id;
   ctx.reply('Video processing has started, please wait, it may take a few minutes');
-  const file = await cutFile(state[userId].payload);
-  const fileWithWater = await addWatermark(file);
+  await cutFile(state[userId].payload, async (err, file) => {
+    if (err) {
+      await ctx.reply('Oops, error :( You could try again');
+      return;
+    }
 
-  await ctx.replyWithVideo({
-    source: fileWithWater,
-  }, Markup.inlineKeyboard([
-    Markup.button.callback('Main menu', 'menu'),
-    Markup.button.callback('Edit result', 'edit_result'),
-  ]));
+    addWatermark(file, async (err, fileWithWater) => {
+      if (err) {
+        await ctx.reply('Oops, error :( You could try again');
+        return;
+      }
 
-  ctx.analytics.finish();
+      await ctx.replyWithVideo({
+        source: fileWithWater,
+      }, Markup.inlineKeyboard([
+        Markup.button.callback('Main menu', 'menu'),
+        Markup.button.callback('Edit result', 'edit_result'),
+      ]));
+
+      ctx.analytics.finish();
+    });
+  });
 
   return true;
 }
