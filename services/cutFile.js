@@ -11,7 +11,7 @@ module.exports = async (payload, callback) => {
         const width = 1 - (left/100) - (right/100);
         const height = 1 - (top/100) - (bottom/100);
         let info = await ytdl.getInfo(payload.link);
-        let format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+        let format = ytdl.chooseFormat(info.formats, { quality: 'highest', filter: 'audioandvideo' });
 
         const args = [
             '-ss', payload.startTime,
