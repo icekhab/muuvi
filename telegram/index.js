@@ -101,6 +101,7 @@ const processVideo = async (ctx) => {
   ctx.reply('Video processing has started, please wait, it may take a few minutes');
   await cutFile(state[userId].payload, async (err, file) => {
     if (err) {
+      console.log(err)
       await ctx.reply('Oops, error :( You could try again');
       return;
     }
