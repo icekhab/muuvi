@@ -12,7 +12,7 @@
     "express": "^4.18.2",
     "fluent-ffmpeg": "^2.1.2",
     "http-errors": "^2.0.0",
-    "jade": "^1.11.0",
+    "jade": "^1.9.2",
     "morgan": "^1.10.0",
     "node-telegram-bot-api": "^0.61.0",
     "request": "^2.88.2",
@@ -22,6 +22,6 @@
     "telegraf-stateless-question": "^2.0.1",
     "universal-analytics": "^0.5.3",
     "uuid": "^9.0.0",
-    "ytdl-core": "^4.11.2"
+    "ytdl-core": "^4.11.5"
   }
 }
