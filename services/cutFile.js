@@ -51,6 +51,7 @@ module.exports = async (payload, callback) => {
             proc.kill();
         });
     } catch(err) {
+        console.log(err)
         callback(err);
     }
 };
