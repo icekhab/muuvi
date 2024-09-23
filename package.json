@@ -21,6 +21,7 @@
     "telegraf-inline-menu": "^6.3.0",
     "telegraf-question": "^1.1.4",
     "telegraf-stateless-question": "^2.0.1",
+    "undici": "^6.19.8",
     "universal-analytics": "^0.5.3",
     "uuid": "^10.0.0"
   }
