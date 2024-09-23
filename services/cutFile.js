@@ -1,4 +1,4 @@
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const Stream = require('stream');
 const spawn = require('child_process').spawn;
